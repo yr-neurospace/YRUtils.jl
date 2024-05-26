@@ -97,6 +97,11 @@ function trimgalore(dir::AbstractString, outdir::AbstractString=pwd(), r1_suffix
 
     cmd_valid(Cmd(string.([trimgalore_path, "--version"])); return_false=false)
 
+    cutadapt_path = find_cmd("cutadapt")
+    pigz_path = find_cmd("pigz")
+    cmd_valid(Cmd(string.([cutadapt_path, "--version"])); return_false=false)
+    cmd_valid(Cmd(string.([pigz_path, "--version"])); return_false=false)
+
     if nthreads < 1
         @warn "invalid nthreads, reset to 1"
     end
@@ -104,10 +109,11 @@ function trimgalore(dir::AbstractString, outdir::AbstractString=pwd(), r1_suffix
     mkpath(outdir)
 
     trimgalore_options = strip(trimgalore_options)
-    cmd_vec = [trimgalore_path, "--cores", nthreads, "--output_dir", outdir]
+    cmd_vec = [trimgalore_path]
     if !isempty(trimgalore_options)
         cmd_vec = [cmd_vec; Base.shell_split(trimgalore_options)]
     end
+    cmd_vec = [cmd_vec; "--cores"; nthreads; "--output_dir"; outdir]
 
     r1_suffix_pattern = Regex(string(replace(r1_suffix, "." => raw"\."), raw"$"))
     # r2_suffix_pattern = Regex(string(replace(r2_suffix, "." => raw"\."), raw"$"))
@@ -120,6 +126,7 @@ function trimgalore(dir::AbstractString, outdir::AbstractString=pwd(), r1_suffix
             stdout_io_bf = IOBuffer()
             stderr_io_bf = IOBuffer()
             cmd = Cmd(string.([cmd_vec; x[1]; x[2]]))
+            @info string("running ", cmd, " ...")
             run(pipeline(cmd; stdout=stdout_io_bf, stderr=stderr_io_bf); wait=true)
             stdout_stderr_str = string(String(take!(stdout_io_bf)),
                 String(take!(stderr_io_bf)), "\n\n")
@@ -133,6 +140,7 @@ function trimgalore(dir::AbstractString, outdir::AbstractString=pwd(), r1_suffix
             stdout_io_bf = IOBuffer()
             stderr_io_bf = IOBuffer()
             cmd = Cmd(string.([cmd_vec; x]))
+            @info string("running ", cmd, " ...")
             run(pipeline(cmd; stdout=stdout_io_bf, stderr=stderr_io_bf); wait=true)
             stdout_stderr_str = string(String(take!(stdout_io_bf)),
                 String(take!(stderr_io_bf)), "\n\n")
