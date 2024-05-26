@@ -114,7 +114,7 @@ function trimgalore(dir::AbstractString, outdir::AbstractString=pwd(), r1_suffix
     all_r1_files = list_files(dir, r1_suffix_pattern; recursive=recursive, full_name=true)
     if "--paired" in cmd_vec
         all_r2_files = replace.(all_r1_files, r1_suffix_pattern => r2_suffix)
-        all_r1_r2_files = zip(all_r1_files, all_r2_files)
+        all_r1_r2_files = collect(zip(all_r1_files, all_r2_files))
         @info "start running trim_galore in paired-end mode ..."
         para_cmds(all_r1_r2_files; kwargs...) do x
             stdout_io_bf = IOBuffer()
@@ -126,7 +126,7 @@ function trimgalore(dir::AbstractString, outdir::AbstractString=pwd(), r1_suffix
             print(stdout_stderr_str)
         end
 
-        return collect(all_r1_r2_files)
+        return all_r1_r2_files
     else
         @info "start running trim_galore in single-end mode ..."
         para_cmds(all_r1_files; kwargs...) do x
