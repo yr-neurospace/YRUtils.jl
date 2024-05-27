@@ -69,11 +69,13 @@ function fastqc(dir::AbstractString, outdir::AbstractString=pwd(), pattern::Rege
 end
 
 """
-    trimgalore(dir::AbstractString, outdir::AbstractString=pwd(), r1_suffix::AbstractString="_1.fq.gz", r2_suffix::AbstractString="_2.fq.gz"; nthreads::Int=1, recursive::Bool=true, trimgalore_path::AbstractString="", trimgalore_options::AbstractString="--paired --phred33 --quality 20 --length 30 --trim-n", kwargs...) -> Vector{Tuple{String, String}} or Vector{String}
+    trimgalore(dir::AbstractString, outdir::AbstractString=pwd(), r1_suffix::AbstractString="_1.fq.gz", r2_suffix::AbstractString="_2.fq.gz", pattern::Regex=r""; nthreads::Int=1, recursive::Bool=true, trimgalore_path::AbstractString="", trimgalore_options::AbstractString="--paired --phred33 --quality 20 --length 30 --trim-n", kwargs...) -> Vector{String} or Vector{Tuple{String, String}}
 
 Call `trim_galore` in Julia on FASTQ files matching `r1_suffix` and/or `r2_suffix` by searching the directory `dir` in a recursive mode if `recursive = true`.
 
 If the reads are single-end, then just `r1_suffix` needed.
+
+`pattern` is only used to match the common FASTQ files suffix independent of the type of endedness. The default will work well for most cases, so just leave it empty.
 
 The path to `trim_galore` will be found using `which trim_galore` if `trimgalore_path = ""`. 
 
@@ -83,12 +85,16 @@ Files found will be returned after processing.
 
 All other keyword arguments will be passed to `para_cmds` via `kwargs`.
 """
-function trimgalore(dir::AbstractString, outdir::AbstractString=pwd(), r1_suffix::AbstractString="_1.fq.gz", r2_suffix::AbstractString="_2.fq.gz"; nthreads::Int=1, recursive::Bool=true, trimgalore_path::AbstractString="", trimgalore_options::AbstractString="--paired --phred33 --quality 20 --length 30 --trim-n", kwargs...)
+function trimgalore(dir::AbstractString, outdir::AbstractString=pwd(), r1_suffix::AbstractString="_1.fq.gz", r2_suffix::AbstractString="_2.fq.gz", pattern::Regex=r""; nthreads::Int=1, recursive::Bool=true, trimgalore_path::AbstractString="", trimgalore_options::AbstractString="--paired --phred33 --quality 20 --length 30 --trim-n", kwargs...)
     if isempty(dir) || isempty(outdir)
         @error "dir and/or outdir is empty"
     else
         dir = abspath(expanduser(dir))
         outdir = abspath(expanduser(outdir))
+    end
+
+    if pattern == r""
+        pattern = r"\.(fastq|fq|fastq\.gz|fq\.gz)$"
     end
 
     if isempty(trimgalore_path)
@@ -132,8 +138,6 @@ function trimgalore(dir::AbstractString, outdir::AbstractString=pwd(), r1_suffix
                 String(take!(stderr_io_bf)), "\n\n")
             print(stdout_stderr_str)
         end
-
-        return all_r1_r2_files
     else
         @info "start running trim_galore in single-end mode ..."
         para_cmds(all_r1_files; kwargs...) do x
@@ -146,7 +150,22 @@ function trimgalore(dir::AbstractString, outdir::AbstractString=pwd(), r1_suffix
                 String(take!(stderr_io_bf)), "\n\n")
             print(stdout_stderr_str)
         end
+    end
 
-        return all_r1_files
+    @info "rename FASTQ files ..."
+    trimmed_fq_files = list_files(outdir, pattern; recursive=false, full_name=true)
+    renamed_trimmed_fq_files = replace.(trimmed_fq_files, Regex(string("(_val_[12]|_trimmed)(?=", pattern.pattern, ")")) => "")
+    if isempty(renamed_trimmed_fq_files)
+        @error "fail to rename FASTQ files"
+    end
+    for (s, t) in zip(trimmed_fq_files, renamed_trimmed_fq_files)
+        @info string("move ", s, " to ", t, " ...")
+        mv(s, t; force=false)
+    end
+
+    return if "--paired" in cmd_vec
+        all_r1_r2_files
+    else
+        all_r1_files
     end
 end
