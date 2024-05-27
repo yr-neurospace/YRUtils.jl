@@ -13,7 +13,7 @@ export check_nucleotide, show
 # parse_cigar.jl
 export parse_cigar, parse_cigar_only, parse_cigar_op
 # ngs.jl
-export fastqc, trimgalore
+export fastqc, trimgalore, auto_detect_fastq_read_type
 
 include("biosequences.jl")
 include("parse_cigar.jl")
