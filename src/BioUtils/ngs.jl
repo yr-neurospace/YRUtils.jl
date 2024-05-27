@@ -1,3 +1,5 @@
+const FASTQ_PATTERN = r"\.(fastq|fq|fastq\.gz|fq\.gz)$"
+
 """
     fastqc(dir::AbstractString, outdir::AbstractString=pwd(), pattern::Regex=r""; recursive::Bool=true, nthreads::Int=1, fastqc_path::AbstractString="", fastqc_options::AbstractString="", multiqc_path::AbstractString="", kwargs...) -> Vector{String}
 
@@ -168,4 +170,53 @@ function trimgalore(dir::AbstractString, outdir::AbstractString=pwd(), r1_suffix
     else
         all_r1_files
     end
+end
+
+"""
+    auto_detect_fastq_read_type(dir::AbstractString; recursive=true) -> Vector
+
+Detect FASTQ read types and categorize each FASTQ file based on its ID, read type, and rep.
+"""
+function auto_detect_fastq_read_type(dir::AbstractString; recursive=true)
+    fq_files = list_files(dir, FASTQ_PATTERN; recursive=recursive, full_name=true)
+
+    fq_ms = match.(Regex(string("(.+)", "(_rep\\d+){1}", "(_part\\d+){0,1}", "(_[12]|\\.R[12]){0,1}", FASTQ_PATTERN.pattern)), basename.(fq_files))
+
+    if any(isnothing.(fq_ms))
+        @error "extract fields from some FASTQ file names failed"
+    end
+
+    full_fq_ms = convert(Vector{NTuple{6,Union{Nothing,String}}}, [(m[1], m[2], m[3], m[4], m[5], fq) for (m, fq) in zip(fq_ms, fq_files)])
+
+    if any(isnothing.(getindex.(full_fq_ms, 1))) || any(isnothing.(getindex.(full_fq_ms, 2)))
+        @error "some FASTQ file names lack standard ID and/or rep fields"
+    end
+
+    if all(.!isnothing.(getindex.(full_fq_ms, 4)))
+        @info "it seems that all FASTQ files are paired-end well"
+        endedness = "paired"
+        fqs_dict = Dict(id => Dict(r => Dict{String,Vector{String}}() for r in unique(unique(getindex.(full_fq_ms, 4)))) for id in unique(getindex.(full_fq_ms, 1)))
+        for full_fq_m in full_fq_ms
+            if !haskey(fqs_dict[full_fq_m[1]][full_fq_m[4]], full_fq_m[2])
+                fqs_dict[full_fq_m[1]][full_fq_m[4]][full_fq_m[2]] = [full_fq_m[6]]
+            else
+                push!(fqs_dict[full_fq_m[1]][full_fq_m[4]][full_fq_m[2]], full_fq_m[6])
+            end
+        end
+    elseif all(isnothing.(getindex.(full_fq_ms, 4)))
+        @info "it seems that all FASTQ files are single-end"
+        endedness = "single"
+        fqs_dict = Dict(id => Dict("R1" => Dict{String,Vector{String}}()) for id in unique(getindex.(full_fq_ms, 1)))
+        for full_fq_m in full_fq_ms
+            if !haskey(fqs_dict[full_fq_m[1]]["R1"], full_fq_m[2])
+                fqs_dict[full_fq_m[1]]["R1"][full_fq_m[2]] = [full_fq_m[6]]
+            else
+                push!(fqs_dict[full_fq_m[1]]["R1"][full_fq_m[2]], full_fq_m[6])
+            end
+        end
+    else
+        @error "it seems that some FASTQ files are paired-end but others are single-end"
+    end
+
+    return [endedness, fqs_dict]
 end
