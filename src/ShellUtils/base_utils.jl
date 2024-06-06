@@ -12,7 +12,7 @@ The first argument of `f` must accept a single element of `arr`.
 You can set the number of jobs via `num_jobs` launched at the same time, and poll tasks again after `poll_secs` seconds.
 
 # Examples
-```julia
+```julia-repl
 julia> para_cmds(x -> run(Cmd(["sleep", string(x)]), [20, 25, 30, 35, 40]; wait=true); num_jobs=3, poll_secs=3)
 All jobs done!
 ```
