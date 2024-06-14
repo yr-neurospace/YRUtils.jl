@@ -161,7 +161,7 @@ end
 	localmem::Int = 0,
 	working_dir::AbstractString = "",
 	log_file::AbstractString = "run_10x_cellranger_arc_count.log",
-	cluster_header::AbstractString = "#PBS -N 10x_cellranger_arc_count\n#PBS -l nodes=1:ppn=24\n#PBS -l walltime=500:00:00\n#PBS -V") -> String
+	cluster_header::AbstractString = "#PBS -N 10x_cellranger_arc_count\n#PBS -l nodes=1:ppn=60\n#PBS -l walltime=7200:00:00\n#PBS -q mem3T\n#PBS -V") -> String
 
 Generate the shell script file for running 10X `cellranger-arc count` in batch.
 """
