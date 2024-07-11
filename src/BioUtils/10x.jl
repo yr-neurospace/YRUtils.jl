@@ -195,12 +195,80 @@ function run_10x_cellranger_arc_count(
 			println(io, cluster_header)
 		end
 		if !isempty(working_dir)
-			println(io, "\n", working_dir)
+			println(io, "\n", "cd ", working_dir)
 		end
 
 		for sample in samples
 			cmd = string(
 				"cellranger-arc count --id=$sample --reference=$reference --libraries=$library",
+				if localcores > 0
+					" --localcores=$localcores"
+				end,
+				if localmem > 0
+					" --localmem=$localmem"
+				end,
+				if !isempty(log_file)
+					" &>> $log_file"
+				end)
+			println(io, "\n", cmd)
+		end
+	end
+
+	return output_sh_file
+end
+
+"""
+	run_10x_cellranger_count(
+	library::AbstractString,
+	reference::AbstractString,
+	localcores::Int = 0,
+	localmem::Int = 0,
+	create_bam::Bool = false,
+	working_dir::AbstractString = "",
+	log_file::AbstractString = "run_10x_cellranger_count.log",
+	cluster_header::AbstractString = "#PBS -N 10x_cellranger_count\n#PBS -l nodes=1:ppn=24\n#PBS -l walltime=500:00:00\n#PBS -V") -> String
+
+Generate the shell script file for running 10X `cellranger count` in batch.
+"""
+function run_10x_cellranger_count(
+	library::AbstractString,
+	reference::AbstractString,
+	localcores::Int = 0,
+	localmem::Int = 0,
+	create_bam::Bool = false,
+	working_dir::AbstractString = "",
+	log_file::AbstractString = "run_10x_cellranger_count.log",
+	cluster_header::AbstractString = "#PBS -N 10x_cellranger_count\n#PBS -l nodes=1:ppn=24\n#PBS -l walltime=500:00:00\n#PBS -V")
+
+	if isempty(library)
+		@error "library is empty"
+	end
+	if isempty(reference)
+		@error "reference is empty"
+	end
+	if localcores < 1
+		@info "won't set the argument --localcores"
+	end
+	if localmem < 1
+		@info "won't set the argument --localmem"
+	end
+
+	output_sh_file = joinpath(dirname(library), "run_10x_cellranger_arc_count.sh")
+	lib_df = CSV.read(library, DataFrame; delim = ',')
+	open(output_sh_file, "w") do io
+		if !isempty(cluster_header)
+			println(io, cluster_header)
+		end
+		if !isempty(working_dir)
+			println(io, "\n", "cd ", working_dir)
+		end
+
+		for r in eachrow(lib_df)
+			cmd = string(
+				"cellranger count --id=$(r.sample) --transcriptome=$reference --fastqs=$(r.fastqs) --sample=$(r.sample)",
+				if create_bam
+					" --create-bam=true"
+				end,
 				if localcores > 0
 					" --localcores=$localcores"
 				end,

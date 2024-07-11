@@ -18,7 +18,7 @@ export parse_cigar, parse_cigar_only, parse_cigar_op
 # ngs.jl
 export fastqc, trimgalore, auto_detect_fastq_read_type
 # 10x.jl
-export rename_10x_fastq_name, run_10x_cellranger_arc_count
+export rename_10x_fastq_name, run_10x_cellranger_arc_count, run_10x_cellranger_count
 # ncbi.jl
 export ncbi_sra_prefetch, ncbi_sra_dump
 
