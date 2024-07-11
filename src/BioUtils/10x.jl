@@ -203,12 +203,18 @@ function run_10x_cellranger_arc_count(
 				"cellranger-arc count --id=$sample --reference=$reference --libraries=$library",
 				if localcores > 0
 					" --localcores=$localcores"
+				else
+					""
 				end,
 				if localmem > 0
 					" --localmem=$localmem"
+				else
+					""
 				end,
 				if !isempty(log_file)
 					" &>> $log_file"
+				else
+					""
 				end)
 			println(io, "\n", cmd)
 		end
@@ -268,15 +274,23 @@ function run_10x_cellranger_count(
 				"cellranger count --id=$(r.sample) --transcriptome=$reference --fastqs=$(r.fastqs) --sample=$(r.sample)",
 				if create_bam
 					" --create-bam=true"
+				else
+					""
 				end,
 				if localcores > 0
 					" --localcores=$localcores"
+				else
+					""
 				end,
 				if localmem > 0
 					" --localmem=$localmem"
+				else
+					""
 				end,
 				if !isempty(log_file)
 					" &>> $log_file"
+				else
+					""
 				end)
 			println(io, "\n", cmd)
 		end
