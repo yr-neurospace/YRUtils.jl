@@ -259,7 +259,7 @@ function run_10x_cellranger_count(
 		@info "won't set the argument --localmem"
 	end
 
-	output_sh_file = joinpath(dirname(library), "run_10x_cellranger_arc_count.sh")
+	output_sh_file = joinpath(dirname(library), "run_10x_cellranger_count.sh")
 	lib_df = CSV.read(library, DataFrame; delim = ',')
 	open(output_sh_file, "w") do io
 		if !isempty(cluster_header)

@@ -1,7 +1,7 @@
 name = "YRUtils"
 uuid = "cd3eeac1-57a3-416b-8d7b-78d7e2bf3b87"
 authors = ["Rui Yang <neurospace@petalmail.com>"]
-version = "0.1.10"
+version = "0.1.11"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
