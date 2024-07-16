@@ -271,12 +271,7 @@ function run_10x_cellranger_count(
 
 		for r in eachrow(lib_df)
 			cmd = string(
-				"cellranger count --id=$(r.sample) --transcriptome=$reference --fastqs=$(r.fastqs) --sample=$(r.sample)",
-				if create_bam
-					" --create-bam=true"
-				else
-					""
-				end,
+				"cellranger count --id=$(r.sample) --transcriptome=$reference --fastqs=$(r.fastqs) --sample=$(r.sample) --create-bam=$(create_bam)",
 				if localcores > 0
 					" --localcores=$localcores"
 				else
