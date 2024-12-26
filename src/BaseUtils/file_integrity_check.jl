@@ -70,7 +70,7 @@ function md5_check(md5_file::AbstractString, io::Union{Nothing,IO}=stdout;
 
     md5_arr = open(md5_file, "r") do io
         md5_str = strip.(readlines(io))
-        convert(Vector{Vector{String}}, split.(md5_str[.!isempty.(md5_str)], r" +"))
+        convert(Vector{Vector{String}}, split.(md5_str[.!isempty.(md5_str)], r"[ *]+"))
     end
 
     if !all(length.(md5_arr) .== 2)

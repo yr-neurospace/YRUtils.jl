@@ -125,6 +125,9 @@ function trimgalore(dict::Union{Dict{String,Dict{String,Dict{String,Vector{Strin
     if !isempty(trimgalore_options)
         cmd_vec = [cmd_vec; Base.shell_split(trimgalore_options)]
     end
+    if read_type == "paired"
+        cmd_vec = [cmd_vec; "--paired"]
+    end
     cmd_vec = [cmd_vec; "--output_dir"; outdir]
 
     if read_type == "paired"
