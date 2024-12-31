@@ -76,13 +76,13 @@ end
 
 
 """
-    find_cmd(cmd_name::AbstractString; return_nothing::Bool=true, verbose::Bool=true)::AbstractString
+    find_cmd(cmd_name::AbstractString; return_nothing::Bool=false, verbose::Bool=true)::Union{Nothing, AbstractString}
 
 Search the command `cmd_name` path using `which cmd_name`.
 
 If `return_nothing` is `true`, then return `nothing` when `cmd_name` cannot be found instead of throwing an error.
 """
-function find_cmd(cmd_name::AbstractString; return_nothing::Bool=true, verbose::Bool=true)::AbstractString
+function find_cmd(cmd_name::AbstractString; return_nothing::Bool=false, verbose::Bool=true)::Union{Nothing, AbstractString}
     cmd_path = ""
     try
         cmd_path = open(Cmd(string.(["which", cmd_name])), "r", stdin) do io
