@@ -1,4 +1,105 @@
 """
+    fa_num(fa_files::Vector{String}, nthreads::Int=1; seqkit_path::AbstractString="")
+
+Count the number of sequences from FASTA files `fa_files`.
+"""
+function fa_num(fa_files::Vector{String}, nthreads::Int=1; seqkit_path::AbstractString="")
+    if nthreads < 1
+        @warn "nthreads cannot be less than 1, and is reset to 1"
+        nthreads = 1
+    end
+    if isempty(strip(seqkit_path))
+        seqkit_path = find_cmd("seqkit"; return_nothing=false)
+    end
+
+    io = IOBuffer()
+    cmd = pipeline(Cmd(string.([seqkit_path, "stats", "-j", nthreads, "-T", fa_files...])); stdout=io)
+    @info string("running ", cmd, " ...")
+    run(cmd; wait=true)
+    df = CSV.read(IOBuffer(String(take!(io))), DataFrame; header=true, delim="\t")
+
+    return Dict(zip(df[:, :file], df[:, :num_seqs]))
+end
+
+"""
+    fq_num(fq_files::Vector{String}, nthreads::Int=1; seqkit_path::AbstractString="")
+
+Count the number of sequences from FASTQ files `fq_files`.
+"""
+function fq_num(fq_files::Vector{String}, nthreads::Int=1; seqkit_path::AbstractString="")
+    if nthreads < 1
+        @warn "nthreads cannot be less than 1, and is reset to 1"
+        nthreads = 1
+    end
+    if isempty(strip(seqkit_path))
+        seqkit_path = find_cmd("seqkit"; return_nothing=false)
+    end
+
+    io = IOBuffer()
+    cmd = pipeline(Cmd(string.([seqkit_path, "stats", "-j", nthreads, "-T", fq_files...])); stdout=io)
+    @info string("running ", cmd, " ...")
+    run(cmd; wait=true)
+    df = CSV.read(IOBuffer(String(take!(io))), DataFrame; header=true, delim="\t")
+
+    return Dict(zip(df[:, :file], df[:, :num_seqs]))
+end
+
+"""
+    bam_num(bam_files::Vector{String}, nthreads::Int=1; sambamba_path::AbstractString="")
+
+Count the number of alignments from BAM files `bam_files`.
+"""
+function bam_num(bam_files::Vector{String}, nthreads::Int=1; sambamba_path::AbstractString="")
+    if nthreads < 1
+        @warn "nthreads cannot be less than 1, and is reset to 1"
+        nthreads = 1
+    end
+    if isempty(strip(sambamba_path))
+        sambamba_path = find_cmd("sambamba"; return_nothing=false)
+    end
+
+    bam_index(bam_files, nthreads; sambamba_path=sambamba_path)
+
+    dict = Dict(k => 0 for k in bam_files)
+    for bam_file in bam_files
+        io = IOBuffer()
+        cmd = pipeline(Cmd(string.([sambamba_path, "view", "-t", nthreads, "-c", bam_file])); stdout=io)
+        @info string("running ", cmd, " ...")
+        run(cmd; wait=true)
+        dict[bam_file] = parse(Int64, strip(String(take!(io))))
+    end
+
+    return dict
+end
+
+"""
+    bam_index(bam_files::Vector{String}, n_threads::Int=1; sambamba_path::AbstractString="")
+
+Index BAM files using `sambamba index`.
+"""
+function bam_index(bam_files::Vector{String}, n_threads::Int=1; sambamba_path::AbstractString="")
+    if isempty(bam_files) || !all(isfile.(bam_files))
+        @error "bam_files cannot be empty and each file in bam_files must be already existed"
+    end
+    if n_threads < 1
+        @error "n_threads must be a positive integer"
+    end
+    if isempty(strip(sambamba_path))
+        sambamba_path = find_cmd("sambamba"; return_nothing=false)
+    end
+    cmd_valid(Cmd(string.([sambamba_path, "--version"])); return_false=false)
+
+    for bam_file in bam_files
+        if !isfile(string(bam_file, ".bai"))
+            @info string("file (", bam_file, ") does not seem to be indexed. Indexing now:")
+            cmd = Cmd(string.([sambamba_path, "index", "-t", n_threads, bam_file]))
+            @info string("running ", cmd, " ...")
+            run(cmd; wait=true)
+        end
+    end
+end
+
+"""
     fastqc(files::Vector{String}, outdir::AbstractString=pwd();
     fastqc_path::AbstractString="", fastqc_options::AbstractString="--threads 1",
     multiqc_path::AbstractString="", multiqc_options::AbstractString="--zip-data-dir",
